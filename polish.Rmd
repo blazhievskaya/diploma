@@ -1,0 +1,159 @@
+---
+title: "Polish"
+output: word_document
+#output: 
+#  html_document:
+#    self_contained: false
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(reshape)
+library(ggplot2)
+
+```
+```{r data reading}
+csvdata = read.csv("verbs_infinitive.csv", encoding="UTF-8", check.names=FALSE)
+
+genderfields = c("m1", "m2", "m3", "f", "n")
+numberfields = c("sg", "pl")
+formfields = c("inf", "praet")
+syntaxfields = c("inf+conj", "praet+conj", "inf+adv", "praet+adv")
+countfields = c("count") 
+percentfields = c("PELCRA", "Sketch")
+
+allfields = list(genderfields, numberfields, formfields, syntaxfields, percentfields)
+
+```
+
+```{r count stats, fig.width=9, fig.height=5}
+#Describe data with the help of graphs
+
+ggplot(csvdata, aes(verb, count)) +  
+  geom_bar(position = "dodge", stat="identity") +
+  coord_flip()
+
+```
+
+```{r overall stats, fig.width=9, fig.height=5}
+for (fields in allfields){
+  data=csvdata[c("verb", fields)];
+  count = 1;
+  len = 10;
+  while (count<40) {
+    start = count
+    end = start+len-1
+    
+    shortdata = data[start:end,]
+    data.m <- melt(shortdata, id.vars="verb")
+    print(
+      ggplot(data.m, aes(verb, value, fill=variable)) +   
+      geom_bar(position = "dodge", stat="identity")
+    )
+    
+    count=count+len
+  }
+}
+```
+
+```{r inf/praet stats, fig.width=9, fig.height=5}
+library(plotly)
+p <- ggplot(csvdata, aes(x = inf, y = praet))+
+   geom_point(aes(color = type))+
+   scale_y_log10()+
+   scale_x_log10()+
+   theme_bw()+
+   geom_smooth(method = "lm")
+
+
+ggplotly(p, tooltip = c("z"))
+p <- ggplot(csvdata, aes(x = inf, y = praet))+
+   geom_point(aes(color = act.class))+
+   scale_y_log10()+
+   scale_x_log10()+
+   theme_bw()+
+   geom_smooth(method = "lm")
+
+ggplotly(p, tooltip = c("z"))
+p <- ggplot(csvdata, aes(x = inf, y = praet))+
+   geom_point(aes(color = trans))+
+   scale_y_log10()+
+   scale_x_log10()+
+   theme_bw()+
+   geom_smooth(method = "lm")
+
+ggplotly(p, tooltip = c("z"))
+
+#Data aggregation
+aggdata <- aggregate(verb ~ inf + praet, data = csvdata,paste, collapse="-")
+p <- ggplot(aggdata, aes(x = inf, y = praet, z = verb))+
+     geom_point()+
+     scale_y_log10()+
+     scale_x_log10()+
+     theme_bw()
+ggplotly(p, tooltip = c("z"))
+```
+
+```{r MCA, fig.width=9, fig.height=5}
+#MCA
+library(FactoMineR)
+newdata <- csvdata$inf/csvdata$praet
+csvdata$newdata <- newdata
+#MCA doesn't work to work with numerical data
+q <- csvdata[c("trans", "act.class", "type")]
+res.mca <- MCA(q)
+summary(res.mca, nb.dec = 2, ncp = 2)
+
+library(factoextra)
+fviz_screeplot(res.mca)
+fviz_contrib(res.mca, choice = "var", axes = 1, top = 10)
+fviz_mca_var(res.mca, col.var ="contrib")+scale_color_gradient2(low="white", mid="blue", high="red", midpoint=2)+theme_minimal()
+
+fviz_mca_ind(res.mca, label="none", habillage = "trans", addEllipses = TRUE, ellipse.level = 0.95)
+fviz_mca_ind(res.mca, label="none", habillage = "type", addEllipses = TRUE, ellipse.level = 0.95)
+fviz_mca_ind(res.mca, label="none", habillage = "act.class", addEllipses = TRUE, ellipse.level = 0.95)
+
+
+```
+
+```{r clusterization, fig.width=9, fig.height=5}
+#Clusterization
+
+```
+
+```{r regression, fig.width=9, fig.height=5}
+
+#Regression
+
+ks.test(newdata, "pnorm")
+qqnorm(newdata)
+qqline(newdata)
+
+for.regr <- csvdata[,c("newdata", "trans", "act.class", "type", "Sketch", "PELCRA")]
+lr <- lm(newdata ~ ., data = for.regr)
+summary(lr)
+
+a <- summary(step(lr, direction = "both"))
+
+lrType <- lm(newdata ~ type, data = csvdata)
+summary(lrType)
+
+lrAct <- lm(newdata ~ act.class, data = csvdata)
+boxplot(newdata~act.class, data=csvdata)
+bartlett.test(newdata~act.class, data=csvdata)
+summary(lrAct)
+
+lrTrans <- lm(newdata ~ trans, data = csvdata)
+boxplot(newdata~trans, data=csvdata)
+bartlett.test(newdata~trans, data=csvdata)
+summary(lrTrans)
+
+lrFreq1 <- lm(newdata ~ PELCRA, data = csvdata)
+summary(lrFreq1)
+
+lrFreq2 <- lm(newdata ~ Sketch, data = csvdata)
+summary(lrFreq2)
+
+
+```
+
