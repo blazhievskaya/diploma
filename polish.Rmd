@@ -1,9 +1,9 @@
 ---
 title: "Polish"
-output: word_document
-#output: 
-#  html_document:
-#    self_contained: false
+#output: word_document
+output: 
+  html_document:
+    self_contained: false
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -54,6 +54,8 @@ for (fields in allfields){
     count=count+len
   }
 }
+chisq.test(c(csvdata$praet, csvdata$inf))
+chisq.test(c(csvdata$m, csvdata$sg))
 ```
 
 ```{r inf/praet stats, fig.width=9, fig.height=5}
@@ -99,25 +101,31 @@ ggplotly(p, tooltip = c("z"))
 library(FactoMineR)
 newdata <- csvdata$inf/csvdata$praet
 csvdata$newdata <- newdata
+View(csvdata)
 #MCA doesn't work to work with numerical data
 q <- csvdata[c("trans", "act.class", "type")]
 res.mca <- MCA(q)
+res.mca$eig
 summary(res.mca, nb.dec = 2, ncp = 2)
 
 library(factoextra)
 fviz_screeplot(res.mca)
+fviz_mca_biplot(res.mca) +
+  theme_minimal()
 fviz_contrib(res.mca, choice = "var", axes = 1, top = 10)
+fviz_contrib(res.mca, choice = "var", axes = 2, top = 10)
+var <- get_mca_var(res.mca)
+head(round(var$contrib,2))
+library("corrplot")
+corrplot(var$contrib, is.corr = FALSE)
+head(var$cos2)
+corrplot(var$cos2, is.corr=FALSE)
+res.mca$quali.sup
 fviz_mca_var(res.mca, col.var ="contrib")+scale_color_gradient2(low="white", mid="blue", high="red", midpoint=2)+theme_minimal()
 
-fviz_mca_ind(res.mca, label="none", habillage = "trans", addEllipses = TRUE, ellipse.level = 0.95)
-fviz_mca_ind(res.mca, label="none", habillage = "type", addEllipses = TRUE, ellipse.level = 0.95)
-fviz_mca_ind(res.mca, label="none", habillage = "act.class", addEllipses = TRUE, ellipse.level = 0.95)
-
-
-```
-
-```{r clusterization, fig.width=9, fig.height=5}
-#Clusterization
+res.desc <- dimdesc(res.mca, axes = c(1,2))
+res.desc$'Dim 1'
+res.desc$'Dim 2'
 
 ```
 
@@ -126,8 +134,11 @@ fviz_mca_ind(res.mca, label="none", habillage = "act.class", addEllipses = TRUE,
 #Regression
 
 ks.test(newdata, "pnorm")
+shapiro.test(rnorm(newdata))
 qqnorm(newdata)
 qqline(newdata)
+shapiro.test(rnorm(csvdata$type))
+
 
 for.regr <- csvdata[,c("newdata", "trans", "act.class", "type", "Sketch", "PELCRA")]
 lr <- lm(newdata ~ ., data = for.regr)
@@ -135,25 +146,12 @@ summary(lr)
 
 a <- summary(step(lr, direction = "both"))
 
+head(predict(lr, interval = "conf"))
+
 lrType <- lm(newdata ~ type, data = csvdata)
+boxplot(newdata~type, data=csvdata)
+fligner.test(newdata~type, data=csvdata)
 summary(lrType)
-
-lrAct <- lm(newdata ~ act.class, data = csvdata)
-boxplot(newdata~act.class, data=csvdata)
-bartlett.test(newdata~act.class, data=csvdata)
-summary(lrAct)
-
-lrTrans <- lm(newdata ~ trans, data = csvdata)
-boxplot(newdata~trans, data=csvdata)
-bartlett.test(newdata~trans, data=csvdata)
-summary(lrTrans)
-
-lrFreq1 <- lm(newdata ~ PELCRA, data = csvdata)
-summary(lrFreq1)
-
-lrFreq2 <- lm(newdata ~ Sketch, data = csvdata)
-summary(lrFreq2)
-
 
 ```
 
