@@ -2,58 +2,52 @@
 import csv
 import os
 
+#Get all html files in forms dir
 files = [f for f in os.listdir('forms/') if f.endswith('.html')]
-
+#List of verbs and attributes
 verbs = ['biec', 'chcieć', 'chorować', 'czytać', 'dawać', 'grać', 'kochać', 'leżeć', 'malować', 'nienawidzić', 'orać', 'otwierać', 'pisać', 'pracować', 'przywozić', 'pukać', 'rąbać', 'siedzieć', 'spać', 'spacerować', 'śpiewać', 'strzelać', 'szukać', 'widzieć', 'wisieć', 'zabijać', 'żądać', 'zamykać', 'zamawiać', 'znajdować', 'umierać', 'kłaść', 'trzymać', 'topnieć', 'gnić', 'tracić', 'palić', 'rugać', 'płakać', 'kipieć', 'chrapać']
 allVerbs = {}
-#allAtr = {'count': True}
 allAttr = ['inf', 'praet', 'perf', 'imperf', 'sg', 'pl', 'f', 'n', 'm1', 'm2', 'm3', 'count']
 
-#verbs.sort()
-
-#for verb in verbs:
-#    page = html.parse(verb+'.html')
-#    tds = page.xpath("/html/body/table/tr/td[2]");
-#    for td in tds:
-#        print unicode(td.text_content());
-
+#convert verbs to utf-8
 for i in range(0,len(verbs)):
     verbs[i] = unicode(verbs[i], 'utf-8')
     
-    
+#Verb attributes initialize 
 for verb in verbs:
     allVerbs[verb] = {}
     for attr in allAttr:
         allVerbs[verb][attr] = 0
 
-#в forms должен быть список файлов из папки forms
-
+#Process by files
 for form in files:
     formFile = "forms/"+form
     if os.stat(formFile).st_size == 0:
         continue
-    page = html.parse(formFile)#html дописывать не нужно, должно быть итак в списке файлов
+    page = html.parse(formFile)
     print "form - "+form
+	#get second columns 
     tds = page.xpath("/html/body/table/tr/td[2]");
-    for td in tds:
-        #print unicode(td.text_content())
+    for td in tds:        
+		#split by space
         strings = td.text_content().strip().split()
+		#pick out attributes string
         attributes_string = strings[3].strip('[]')
         attributes = attributes_string.split(':')
-
+		#pick out infinitive 
         verb = attributes[0]
-        
+		
+        #Check verbs to avoid redundant data   
         if verb not in verbs:
-            #print "not found - "+verb;
             continue
-        #print "inf - "+verb;
-#мы тут начинали с первого элемента, а не с нулевого, потому что в первом атрибуте лежит инфинитив, который в данном случае должен будет быть verb
-        for i in range(1,len(attributes)):
+        #Remember attributes 
+		for i in range(1,len(attributes)):
             allVerbs[verb][attributes[i]]+=1
-        
+			
+        #Count records 
         allVerbs[verb]['count']+=1
             
-#print allVerbs
+#Write data to csv 
 
 with open ('verbs_infin_by_forms.csv','wb') as csvfile:
     fieldnames = ['verb'] + allAttr
