@@ -1,9 +1,9 @@
 ---
 title: "Polish"
-#output: word_document
-output: 
+output:
   html_document:
-    self_contained: false
+    self_contained: no
+  word_document: default
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -15,14 +15,15 @@ library(ggplot2)
 ```{r data reading}
 csvdata = read.csv("verbs_infinitive.csv", encoding="UTF-8", check.names=FALSE)
 
-genderfields = c("m1", "m2", "m3", "f", "n")
+csvdata$m = csvdata$m1+csvdata$m2+csvdata$m3
+genderfields = c("m", "f", "n")
 numberfields = c("sg", "pl")
 formfields = c("inf", "praet")
 syntaxfields = c("inf+conj", "praet+conj", "inf+adv", "praet+adv")
 countfields = c("count") 
 percentfields = c("PELCRA", "Sketch")
 
-allfields = list(genderfields, numberfields, formfields, syntaxfields, percentfields)
+allfields = list(genderfields, numberfields, formfields, syntaxfields)
 
 ```
 
@@ -47,12 +48,29 @@ for (fields in allfields){
     shortdata = data[start:end,]
     data.m <- melt(shortdata, id.vars="verb")
     print(
-      ggplot(data.m, aes(verb, value, fill=variable)) +   
+      ggplot(data.m, aes(verb, value+1, fill=variable)) +
+      scale_y_log10() +
       geom_bar(position = "dodge", stat="identity")
     )
     
     count=count+len
   }
+}
+data=csvdata[c("verb", percentfields)];
+count = 1;
+len = 10;
+while (count<40) {
+  start = count
+  end = start+len-1
+  
+  shortdata = data[start:end,]
+  data.m <- melt(shortdata, id.vars="verb")
+  print(
+    ggplot(data.m, aes(verb, value, fill=variable)) +
+    geom_bar(position = "dodge", stat="identity")
+  )
+  
+  count=count+len
 }
 chisq.test(c(csvdata$praet, csvdata$inf))
 chisq.test(c(csvdata$m, csvdata$sg))
